@@ -5,7 +5,7 @@
 #include "base64.h"
 
 /* BASE 64 encode table */
-static const char base64en[] = 
+static const int8_t base64en[] = 
 {
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
     'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -22,7 +22,7 @@ static const char base64en[] =
 #define BASE64DE_LAST   'z'
 
 /* ASCII order for BASE 64 decode, -1 in unused character */
-static const signed char base64de[] = 
+static const int8_t base64de[] = 
 {
     /* '+', ',', '-', '.', '/', '0', '1', '2', */ 
         62,  -1,  -1,  -1,  63,  52,  53,  54,
@@ -55,12 +55,12 @@ static const signed char base64de[] =
         44,  45,  46,  47,  48,  49,  50,  51,
 };
 
-static int base64_encode(const unsigned char *in, unsigned int inlen, char *out)
+static uint16_t base64_encode(const uint8_t *in, uint16_t inlen, int8_t *out,uint16_t *outlen)
 {
-    unsigned int i, j;
+    uint16_t i, j;
 
     for (i = j = 0; i < inlen; i++) {
-        int s = i % 3;          /* from 6/gcd(6, 8) */
+        uint16_t s = i % 3;          /* from 6/gcd(6, 8) */
 
         switch (s) {
         case 0:
@@ -87,7 +87,7 @@ static int base64_encode(const unsigned char *in, unsigned int inlen, char *out)
         out[j++] = base64en[(in[i] & 0xF) << 2];
         out[j++] = BASE64_PAD;
     }
-
+    *outlen = j;
     return BASE64_OK;
 }
 /*
@@ -103,40 +103,47 @@ static int base64_encode(const unsigned char *in, unsigned int inlen, char *out)
 *  历史版本       : 
 *****************************************************
 */
-static int base64_decode(const char *in, unsigned int inlen, unsigned char *out)
+static uint16_t base64_decode(const int8_t *in, uint16_t inlen, uint8_t *out,uint16_t * outlen)
 {
-    unsigned int i, j;
+    uint16_t i, j;
 
     for (i = j = 0; i < inlen; i++) {
-        int c;
-        int s = i % 4;          /* from 8/gcd(6, 8) */
+        uint16_t c;
+        uint16_t s = i % 4;          /* from 8/gcd(6, 8) */
 
         if (in[i] == '=')
+        {
+            *outlen = j;
             return BASE64_OK;
+        }
 
         if (in[i] < BASE64DEFIRST || in[i] > BASE64DE_LAST ||
             (c = base64de[in[i] - BASE64DE_FIRST]) == -1)
-            return BASE64_INVALID;
+            {
+                *outlen = 0;
+                return BASE64_INVALID;
+            }
         switch (s) {
         case 0:
-            out[j] = ((unsigned int)c << 2) & 0xFF;
+            out[j] = ((uint16_t)c << 2) & 0xFF;
             continue;
         case 1:
-            out[j++] += ((unsigned int)c >> 4) & 0x3;
-            /* if not last char with padding */
+            out[j++] += ((uint16_t)c >> 4) & 0x3;
+            /* if not last int8_t with padding */
             if (i < (inlen - 3) || in[inlen - 2] != '=')
-                out[j] = ((unsigned int)c & 0xF) << 4; 
+                out[j] = ((uint16_t)c & 0xF) << 4; 
             continue;
         case 2:
-            out[j++] += ((unsigned int)c >> 2) & 0xF;
-            /* if not last char with padding */
+            out[j++] += ((uint16_t)c >> 2) & 0xF;
+            /* if not last int8_t with padding */
             if (i < (inlen - 2) || in[inlen - 1] != '=')
-                out[j] =  ((unsigned int)c & 0x3) << 6;
+                out[j] =  ((uint16_t)c & 0x3) << 6;
             continue;
         case 3:
-            out[j++] += (unsigned char)c;
+            out[j++] += (uint8_t)c;
         }
     }
+    *outlen = j;
     return BASE64_OK;
 }
 
