@@ -149,7 +149,7 @@ ComdTypedef BT_Parse(uint8_t * Data,uint16_t Len)
     
 #else   
     
-    //memcpy(BT_Buff,Data,Len);
+    memcpy(BT_Buff,Data,Len);
 #endif
     
     ReqTemp = (p_ReqTypedef)BT_Buff;
@@ -159,6 +159,7 @@ ComdTypedef BT_Parse(uint8_t * Data,uint16_t Len)
     
     switch(ReqTemp->CMDR)
     {
+        /* 减去CMDR和CRC长度 */
         uint16_t ComdLen = ReqTemp->LEN - 4;
         
         case COMD_ManualCost:
@@ -166,19 +167,32 @@ ComdTypedef BT_Parse(uint8_t * Data,uint16_t Len)
         {
             uint16_t i = 0;
             uint8_t * Comd = ReqTemp->DATA;
+            uint8_t Len = 0;
             
             while(i < ComdLen)
             {
                 switch(Comd[i])
                 {
-                    case TAG_ConfirmWeight:{DataCost.Weight.Buf = Comd[i + 1];break;}
-                    case TAG_ConfirmUintPrice:{Comd[i] = 0x00;DataCost.UnitPrice.Buf = Comd[i + 1];break;}
-                    case TAG_ConfirmTotalPrice:{Comd[i] = 0x00;DataCost.Total.Buf = Comd[i + 1];break;}
+                    /*2016--12--26--16--40--43(ZJYC): Comd[i] = 0x00;必要性   */ 
+                    case TAG_ConfirmWeight:
+                    {
+                        Comd[i] = 0x00;
+                        Len = Comd[i + 1];
+                        DataCost.Weight.Buf = Comd[i + 2];
+                        i += Len + 2;
+                        break;
+                    }
+                    case TAG_ConfirmUintPrice:
+                    {
+                        Comd[i] = 0x00;
+                        DataCost.UnitPrice.Buf = Comd[i + 1];
+                        i += 6;break;}
+                    case TAG_ConfirmTotalPrice:{Comd[i] = 0x00;DataCost.Total.Buf = Comd[i + 1];i += 11;break;}
                     case TAG_ConfirmPLU:{Comd[i] = 0x00;DataCost.PLU.Buf = Comd[i + 1];break;}
                     case TAG_ConfirmTrace:{Comd[i] = 0x00;DataCost.Trace.Buf = Comd[i + 1];break;}
                     default:break;
                 }
-                i++;if(i == ComdLen)Comd[ComdLen] = 0x00;
+                if(i == ComdLen)Comd[ComdLen] = 0x00;
             }
             return COMD_Cost;
         }

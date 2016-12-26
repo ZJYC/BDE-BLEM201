@@ -77,7 +77,6 @@ typedef struct ReqTypedef_
 
 typedef struct AckTypedef_
 {
-    
     HeaderTypedef HEAD;
     uint32_t LEN;
     uint16_t CMDA;
